@@ -1098,6 +1098,9 @@
             statusEl.style.color = '#94a3b8';
 
             try {
+                statusEl.textContent = 'লোড হচ্ছে...';
+                statusEl.style.color = '#94a3b8';
+
                 const records = await ensureQuestionsCache();
 
                 const matched = Array.isArray(records)
@@ -1112,9 +1115,7 @@
 
                 document.getElementById('mdInput').value = matched.questions;
                 closeDemoModal();
-
-                // সাবজেক্ট ও চ্যাপ্টার পাস করা হলো
-                parseAndGenerate(subject, chapter);
+                parseAndGenerate();
 
             } catch (err) {
                 console.error(err);
@@ -1235,55 +1236,139 @@
             return arr;
         }
 
-        function generateExam() {
-            const rawText = document.getElementById('mdInput').value;
-            if (!rawText.trim()) {
-                alert('আগে কিছু প্রশ্ন ইনপুট দিন বা লোড করুন!');
-                return;
-            }
-
-            const tempQuestions = parseMarkdown(rawText, 'exam', 'mixed');
-            if (tempQuestions.length === 0) {
-                alert('কোনো বৈধ প্রশ্ন পাওয়া যায়নি!');
-                return;
-            }
-
-            const countInput = document.getElementById('examQCount').value;
-            let count = parseInt(countInput) || tempQuestions.length;
-            if (count > tempQuestions.length) count = tempQuestions.length;
-
-            const shuffled = [...tempQuestions].sort(() => 0.5 - Math.random());
-            const selected = shuffled.slice(0, count);
-
-            const timePerQ = parseInt(document.getElementById('examTimePerQ').value) || 30;
-            const totalTime = count * timePerQ;
-
-            examMode = 'exam';
-            timerSecondsLeft = totalTime;
+        async function generateExam() {
+            const statusEl = document.getElementById('examModalStatus');
+            // Mode ও Timer নেওয়া
+            const modeRadio = document.querySelector('input[name="examMode"]:checked');
+            examMode = modeRadio ? modeRadio.value : 'practice';
+            const timerMin = parseInt(document.getElementById('examTimerMin').value) || 0;
+            timerSecondsLeft = timerMin * 60;
             examSubmitted = false;
 
-            localStorage.setItem('mcq_exam_mode', 'exam');
+            localStorage.setItem('mcq_exam_mode', examMode);
             localStorage.setItem('mcq_timer_seconds', timerSecondsLeft);
+            statusEl.textContent = 'লোড হচ্ছে ও প্রশ্ন সিলেক্ট করা হচ্ছে...';
+            statusEl.style.color = '#94a3b8';
 
-            const examMd = selected.map((q, idx) => {
-                let optStr = q.options.map((opt, i) => {
-                    const letters = ['(ক)', '(খ)', '(গ)', '(ঘ)'];
-                    return `${letters[i]} ${opt}`;
-                }).join(' ');
+            const subjectMap = {
+                physics1: parseInt(document.getElementById('exam_physics1').value) || 0,
+                physics2: parseInt(document.getElementById('exam_physics2').value) || 0,
+                chemistry1: parseInt(document.getElementById('exam_chemistry1').value) || 0,
+                chemistry2: parseInt(document.getElementById('exam_chemistry2').value) || 0,
+                biology1: parseInt(document.getElementById('exam_biology1').value) || 0,
+                biology2: parseInt(document.getElementById('exam_biology2').value) || 0,
+                english: parseInt(document.getElementById('exam_english').value) || 0,
+                gk: parseInt(document.getElementById('exam_gk').value) || 0
+            };
 
-                let ansLetter = ['(ক)', '(খ)', '(গ)', '(ঘ)'][q.answer];
-                let srcStr = q.source ? ` [${q.source}]` : '';
+            const totalRequested = Object.values(subjectMap).reduce((a, b) => a + b, 0);
+            if (totalRequested <= 0) {
+                statusEl.textContent = 'কমপক্ষে একটি সাবজেক্ট থেকে প্রশ্ন সংখ্যা দিন!';
+                statusEl.style.color = '#f87171';
+                return;
+            }
 
-                return `**${idx + 1}.** ${q.text}${srcStr}\n${optStr}\n**উত্তর:** ${ansLetter}\n`;
-            }).join('\n');
+            try {
+                const records = await ensureQuestionsCache();
 
-            document.getElementById('mdInput').value = examMd;
+                // Collect all blocks per subject
+                const blocksBySubject = {};
+                for (const sub of Object.keys(subjectMap)) {
+                    if (subjectMap[sub] <= 0) continue;
+                    blocksBySubject[sub] = [];
+                    const matching = records.filter(r => r.subject === sub);
+                    for (const rec of matching) {
+                        if (rec.questions) {
+                            const blocks = extractQuestionBlocks(rec.questions);
+                            blocksBySubject[sub].push(...blocks);
+                        }
+                    }
+                }
 
-            // এক্সামের প্রশ্নগুলোর জন্য 'exam' এবং 'mixed' পাস করা হলো
-            parseAndGenerate('exam', 'mixed');
+                // Sample randomly
+                const selectedBlocks = [];
+                const summary = [];
+                for (const [sub, count] of Object.entries(subjectMap)) {
+                    if (count <= 0) continue;
+                    const pool = blocksBySubject[sub] || [];
+                    if (pool.length === 0) {
+                        summary.push(`${sub}: 0 (ডেটা নেই)`);
+                        continue;
+                    }
+                    const take = Math.min(count, pool.length);
+                    const shuffled = shuffleArray([...pool]);
+                    selectedBlocks.push(...shuffled.slice(0, take));
+                    summary.push(`${sub}: ${take}`);
+                }
 
-            document.getElementById('examSubmitArea').style.display = 'block';
-            startTimerIfNeeded();
+                if (selectedBlocks.length === 0) {
+                    statusEl.textContent = 'কোনো প্রশ্ন পাওয়া যায়নি!';
+                    statusEl.style.color = '#f87171';
+                    return;
+                }
+
+                // Final shuffle of the whole set
+                shuffleArray(selectedBlocks);
+
+                // Renumber questions with new sequential serial (1, 2, 3...) so order is preserved & clean
+                const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+                function toBn(n) {
+                    return String(n).split('').map(d => bnDigits[parseInt(d)] || d).join('');
+                }
+                const renumberedBlocks = selectedBlocks.map((block, idx) => {
+                    const newNum = idx + 1;
+                    // Replace the leading question number (English or Bangla) with new serial
+                    return block.replace(
+                        /^(?:\*\*\s*)?(?:\d+|[০-৯]+)\s*[।\.]\s*/,
+                        `**${toBn(newNum)}। `
+                    );
+                });
+
+                // Build markdown (add blank lines between)
+                const combinedMarkdown = renumberedBlocks.join('\n\n');
+
+                // Set to textarea & generate
+                document.getElementById('mdInput').value = combinedMarkdown;
+                localStorage.setItem('mcq_raw_questions', combinedMarkdown);
+                localStorage.setItem('mcq_is_exam', '1'); // flag for exam mode
+
+                closeExamModal();
+                parseAndGenerate();
+
+                // Timer শুরু করো (যদি সেট করা থাকে)
+                startTimerIfNeeded();
+
+                marksPerQuestion = parseFloat(document.getElementById('examMarksPerQ').value) || 1;
+                negativeMark = parseFloat(document.getElementById('examNegativeMark').value) || 0;
+                if (marksPerQuestion < 0) marksPerQuestion = 1;
+                if (negativeMark < 0) negativeMark = 0;
+                lastExamScore = null;
+
+                localStorage.setItem('mcq_marks_per_q', String(marksPerQuestion));
+                localStorage.setItem('mcq_negative_mark', String(negativeMark));
+
+                document.getElementById('examSubmitArea').style.display = 'flex';
+                // Exam mode হলে Submit দেখাও, practice হলে শুধু Export রাখতে চাইলে Submit hide করতে পারো
+                if (examMode !== 'exam') {
+                    // optional: submit button hide
+                    const submitBtn = document.querySelector('#examSubmitArea .btn-primary');
+                    if (submitBtn) submitBtn.style.display = 'none';
+                } else {
+                    const submitBtn = document.querySelector('#examSubmitArea .btn-primary');
+                    if (submitBtn) submitBtn.style.display = 'inline-block';
+                }
+
+                // Show success briefly
+                const parseStatus = document.getElementById('parseStatus');
+                parseStatus.style.display = 'block';
+                parseStatus.className = 'parse-status';
+                parseStatus.textContent = `✅ Exam তৈরি হয়েছে! মোট ${selectedBlocks.length} টি প্রশ্ন (${summary.join(', ')})`;
+
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = 'সমস্যা: ' + err.message;
+                statusEl.style.color = '#f87171';
+            }
         }
 
         function startTimerIfNeeded() {
@@ -1343,21 +1428,27 @@
             let enStr = str.toString().replace(/[০-৯]/g, d => bnDigits.indexOf(d));
             return parseInt(enStr, 10) || 0;
         }
-
-        function parseMarkdown(text, subject, chapter) {
+        function parseMarkdown(text) {
             if (!text || !text.trim()) return [];
 
+            // Normalize
             text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
             text = text.replace(/\u00A0/g, ' ');
             text = text.replace(/\t/g, ' ');
 
+            // CRITICAL: Force split when answer sticks to next question
+            // Handles: **উত্তর:*(c) আবদ্ধ**১৪১।
             text = text.replace(/(\*\*উত্তর[^*]{0,60}\*\*)\s*((?:\*\*)?(?:\d+|[০-৯]+)\s*[।\.])/gi, '$1\n\n$2');
             text = text.replace(/((?:\*\*)?উত্তর[:：\*]?\s*\(?[a-dA-Dকখগঘ]\)?[^\n*]{0,40}\*?)\s*((?:\*\*)?(?:\d+|[০-৯]+)\s*[।\.])/gi, '$1\n\n$2');
             text = text.replace(/((?:\*\*)?সমাধান[^\n]{0,150}?)\s*((?:\*\*)?(?:\d+|[০-৯]+)\s*[।\.])/gi, '$1\n\n$2');
             text = text.replace(/((?:\*\*)?ব্যাখ্যা[^\n]{0,250}?)\s*((?:\*\*)?(?:\d+|[০-৯]+)\s*[।\.])/gi, '$1\n\n$2');
+
+            // Extra safety: any **number। after some text
             text = text.replace(/([^\n])(\*\*(?:\d+|[০-৯]+)\s*[।\.])/g, '$1\n\n$2');
 
             const questions = [];
+
+            // IMPORTANT: only match question numbers at line start (avoids $1.1$ etc.)
             const qStartRegex = /(?:^|\n)\s*(?:\*\*\s*)?((?:\d{1,4}|[০-৯]{1,4}))\s*[।\.]\s*/gm;
 
             const starts = [];
@@ -1374,7 +1465,7 @@
                 let block = text.slice(start.index, end).trim();
                 block = block.replace(/^\*\*\s*/, '').trim();
 
-                const parsed = parseSingleBlock(block, start.number, subject, chapter);
+                const parsed = parseSingleBlock(block, start.number);
                 if (parsed && parsed.options.length >= 2 && parsed.answer >= 0) {
                     questions.push(parsed);
                 }
@@ -1385,7 +1476,7 @@
             return questions;
         }
 
-        function parseSingleBlock(block, numberHint, subject, chapter) {
+        function parseSingleBlock(block, numberHint) {
             let id = numberHint || '?';
 
             const numMatch = block.match(/^((?:\d+|[০-৯]+))\s*[।\.]\s*/);
@@ -1443,9 +1534,13 @@
 
             if (options.length < 2) return null;
 
+            // FIX: আগে 4টির বেশি অপশন থাকলে কেটে ফেলে দেওয়া হতো, যা বাদ পড়ার অন্যতম কারণ।
+            // এখন যতগুলো অপশনই পার্স হবে সব রাখা হবে।
+
             const answerPart = answerSectionStart > 0 ? block.slice(answerSectionStart) : block;
             let answerIndex = -1;
 
+            // আরও ফ্লেক্সিবল অ্যানসার রিডেক্স প্যাটার্ন
             const ansPatterns = [
                 /(?:\*\*)?(?:উত্তর|Ans|সঠিক\s*উত্তর)\s*[:：]?\s*\*+\s*\(?\s*([a-dA-Dকখগঘ])\s*\)?/i,
                 /(?:\*\*)?(?:উত্তর|Ans|সঠিক\s*উত্তর)\s*[:：]?\s*\*?\s*\(?\s*([a-dA-Dকখগঘ])\s*\)?/i,
@@ -1495,8 +1590,7 @@
             if (answerIndex === -1) return null;
 
             return {
-                // সাবজেক্ট ও চ্যাপ্টারসহ ইউনিক qKey
-                qKey: `${subject}_${chapter}_${id}_${questionText.trim().slice(0, 30)}`,
+                qKey: `${id}_${questionText.trim().slice(0, 30)}`,
                 id: id,
                 text: questionText,
                 options: options,
@@ -1565,32 +1659,24 @@
         const reviewList = new Set();        // কোনগুলো রিভিউতে রাখা হয়েছে
         let currentTab = 'all';
         const selectedAnswers = new Map();   // qKey → selected option index
-        const reviewedQuestions = new Map(); // qKey → পুরো প্রশ্ন অবজেক্ট (persistent)
 
-        function parseAndGenerate(subject = 'custom', chapter = '0') {
+        function parseAndGenerate() {
             const raw = document.getElementById('mdInput').value;
             const status = document.getElementById('parseStatus');
 
-            // রিলোডের জন্য সাবজেক্ট ও চ্যাপ্টার সেভ রাখা হলো
+            // লোকাল স্টোরেজে মার্কডাউন সেভ করা
             localStorage.setItem('mcq_raw_questions', raw);
-            localStorage.setItem('mcq_current_subject', subject);
-            localStorage.setItem('mcq_current_chapter', chapter);
 
-            // পার্সারে সাবজেক্ট ও চ্যাপ্টার পাঠানো হলো
-            questions = parseMarkdown(raw, subject, chapter);
+            questions = parseMarkdown(raw);
 
-            // আগের ডেটা ডিলিট না করে প্রোগ্রেস লোড করা হচ্ছে
-            loadProgress();
-
-            // সঠিক ও ভুল উত্তর পুনরায় হিসাব করা
+            // নতুন প্রশ্ন লোড করার সময় আগের সেশন রিসেট করা
+            answered.clear();
+            selectedAnswers.clear();
+            wrongAnswers.clear();
+            reviewList.clear();
             correctCount = 0;
             wrongCount = 0;
-            questions.forEach(q => {
-                if (selectedAnswers.has(q.qKey)) {
-                    if (selectedAnswers.get(q.qKey) === q.answer) correctCount++;
-                    else wrongCount++;
-                }
-            });
+            saveProgress(); // লোকাল স্টোরেজের প্রোগ্রেসও রিসেট হবে
 
             if (questions.length === 0) {
                 status.style.display = 'block';
@@ -1607,14 +1693,14 @@
 
             document.getElementById('scoreBar').style.display = 'flex';
             document.getElementById('totalQ').textContent = questions.length;
-            document.getElementById('correctCount').textContent = correctCount;
-            document.getElementById('wrongCount').textContent = wrongCount;
+            document.getElementById('correctCount').textContent = '0';
+            document.getElementById('wrongCount').textContent = '0';
 
             renderQuiz();
 
             document.getElementById('tabBar').style.display = 'flex';
-            document.getElementById('wrongTabCount').textContent = wrongAnswers.size;
-            document.getElementById('reviewTabCount').textContent = reviewList.size;
+            document.getElementById('wrongTabCount').textContent = 0;
+            document.getElementById('reviewTabCount').textContent = 0;
         }
 
         function typesetMath(container) {
@@ -2272,9 +2358,6 @@
             questions = [];
             answered.clear();
             selectedAnswers.clear();
-            wrongAnswers.clear();
-            // reviewList.clear();
-            // reviewedQuestions.clear();   // ← এই লাইনটা যোগ করুন
             correctCount = 0;
             wrongCount = 0;
 
@@ -2304,7 +2387,6 @@
             const obtainedMarks = document.getElementById('obtainedMarks');
             if (obtainedMarks) obtainedMarks.textContent = '—';
 
-            // LocalStorage থেকে সমস্ত সংরক্ষিত স্টেট সম্পূর্ণ রিমুভ করা
             localStorage.removeItem('mcq_exam_mode');
             localStorage.removeItem('mcq_timer_seconds');
             localStorage.removeItem('mcq_progress');
@@ -2312,65 +2394,28 @@
             localStorage.removeItem('mcq_is_exam');
             localStorage.removeItem('mcq_marks_per_q');
             localStorage.removeItem('mcq_negative_mark');
-            localStorage.removeItem('mcq_current_subject');
-            localStorage.removeItem('mcq_current_chapter');
 
+            wrongAnswers.clear();
+            reviewList.clear();
             document.getElementById('tabBar').style.display = 'none';
-            document.getElementById('wrongTabCount').textContent = '0';
-            document.getElementById('reviewTabCount').textContent = '0';
         }
 
-        // রিভিউ টগল
         // রিভিউ টগল
         function toggleReview(qIndex, btn) {
-            // Review ট্যাব থেকে আসলে qIndex রিভিউ লিস্টের ইনডেক্স হতে পারে
-            let q = null;
-            if (currentTab === 'review') {
-                const keys = Array.from(reviewedQuestions.keys());
-                const key = keys[qIndex];
-                q = reviewedQuestions.get(key);
-            } else {
-                q = questions[qIndex];
-            }
-            if (!q) return;
-
+            const q = questions[qIndex];
             if (reviewList.has(q.qKey)) {
-                // রিভিউ থেকে সরানো
                 reviewList.delete(q.qKey);
-                reviewedQuestions.delete(q.qKey);
-                if (btn) {
-                    btn.classList.remove('marked');
-                    btn.innerHTML = '☆ রিভিউতে রাখুন';
-                }
+                btn.classList.remove('marked');
+                btn.textContent = '☆ রিভিউতে রাখুন';
             } else {
-                // রিভিউতে যোগ + পুরো প্রশ্ন সেভ
                 reviewList.add(q.qKey);
-                // deep-ish copy যাতে reference সমস্যা না হয়
-                reviewedQuestions.set(q.qKey, {
-                    qKey: q.qKey,
-                    id: q.id,
-                    text: q.text,
-                    options: [...q.options],
-                    answer: q.answer,
-                    explanation: q.explanation || null,
-                    source: q.source || null
-                });
-                if (btn) {
-                    btn.classList.add('marked');
-                    btn.innerHTML = '★ রিভিউতে আছে';
-                }
+                btn.classList.add('marked');
+                btn.textContent = '★ রিভিউতে আছে';
             }
-
             document.getElementById('reviewTabCount').textContent = reviewList.size;
             saveProgress();
-
-            // Review ট্যাবে থাকলে রি-রেন্ডার
-            if (currentTab === 'review') {
-                showTab('review');
-            }
         }
 
-        // ট্যাব পরিবর্তন
         // ট্যাব পরিবর্তন
         function showTab(tab) {
             currentTab = tab;
@@ -2380,133 +2425,92 @@
             });
 
             const btns = document.querySelectorAll('.tab-btn');
+
             if (tab === 'all') btns[0]?.classList.add('active');
             if (tab === 'wrong') btns[1]?.classList.add('active');
             if (tab === 'review') btns[2]?.classList.add('active');
 
-            const container = document.getElementById('quiz-container');
 
-            // ========== REVIEW ট্যাব: localStorage-এ সেভ করা পুরো প্রশ্নগুলো দেখাবে ==========
-            if (tab === 'review') {
-                container.innerHTML = '';
-
-                if (reviewedQuestions.size === 0) {
-                    container.innerHTML = `<div class="empty-state">এখনো কোনো প্রশ্ন রিভিউতে রাখা হয়নি।</div>`;
-                    return;
-                }
-
-                const reviewArr = Array.from(reviewedQuestions.values());
-                reviewArr.forEach((q, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'question-card';
-                    card.dataset.qIndex = index; // রিভিউ লিস্টের ইনডেক্স
-
-                    // রিভিউ ট্যাবে সবসময় সঠিক উত্তর + ব্যাখ্যা দেখানো হবে
-                    const optionsHtml = q.options.map((opt, i) => {
-                        let extraClass = 'disabled locked';
-                        if (i === q.answer) {
-                            extraClass += ' selected-correct';
-                        }
-                        return `
-                    <div class="option ${extraClass}">
-                        <span class="option-label">${String.fromCharCode(97 + i)}</span>
-                        <span>${opt}</span>
-                    </div>
-                `;
-                    }).join('');
-
-                    const feedbackContent = `
-                <div class="feedback-title">✓ সঠিক উত্তর: (${String.fromCharCode(97 + q.answer)}) ${q.options[q.answer]}</div>
-                ${q.explanation ? `<div class="explanation"><strong>ব্যাখ্যা / সমাধান:</strong><br>${q.explanation}</div>` : ''}
-            `;
-
-                    card.innerHTML = `
-                <div class="q-number">রিভিউ প্রশ্ন ${index + 1}</div>
-                <div class="q-text">${q.text}</div>
-                <div class="options">${optionsHtml}</div>
-                <div class="feedback show correct" id="feedback-review-${index}">${feedbackContent}</div>
-                ${q.source ? `<div class="source">সূত্র: ${q.source}</div>` : ''}
-                <button class="review-btn marked" onclick="toggleReview(${index}, this)">
-                    ★ রিভিউতে আছে
-                </button>
-            `;
-                    container.appendChild(card);
-                });
-
-                typesetMath(container);
-                return; // Review ট্যাবের জন্য এখানেই শেষ
-            }
-
-            // ========== ALL / WRONG ট্যাব: আগের মতো ==========
+            // সবসময় নতুন করে render করবে
+            // এতে Wrong tab থেকে সঠিক করা প্রশ্ন অটোমেটিক চলে যাবে
             renderQuiz();
 
+
             const cards = document.querySelectorAll('.question-card');
+
             cards.forEach(card => {
+
+                // এখন question index DOM থেকে নেওয়া হবে
                 const qIndex = Number(card.dataset.qIndex);
                 const q = questions[qIndex];
+
                 if (!q) return;
 
                 if (tab === 'all') {
                     card.style.display = 'block';
-                } else if (tab === 'wrong') {
-                    card.style.display = wrongAnswers.has(q.qKey) ? 'block' : 'none';
                 }
+
+                else if (tab === 'wrong') {
+                    card.style.display =
+                        wrongAnswers.has(q.qKey)
+                            ? 'block'
+                            : 'none';
+                }
+
+                else if (tab === 'review') {
+                    card.style.display =
+                        reviewList.has(q.qKey)
+                            ? 'block'
+                            : 'none';
+                }
+
             });
         }
 
         // ========== localStorage ==========
-        // Progress Save করা
         function saveProgress() {
             const data = {
-                answered: Array.from(answered),
-                wrongAnswers: Array.from(wrongAnswers),
-                reviewList: Array.from(reviewList),
-                selectedAnswers: Array.from(selectedAnswers.entries()),
-                // পুরো প্রশ্ন অবজেক্ট সেভ
-                reviewedQuestions: Array.from(reviewedQuestions.entries())
+                answered: [...answered],
+                wrongAnswers: [...wrongAnswers],
+                reviewList: [...reviewList],
+                selectedAnswers: [...selectedAnswers],   // নতুন
+                correctCount,
+                wrongCount
             };
             localStorage.setItem('mcq_progress', JSON.stringify(data));
         }
 
-        // Progress Load করা
         function loadProgress() {
             const saved = localStorage.getItem('mcq_progress');
             if (!saved) return;
-
             try {
                 const data = JSON.parse(saved);
-                if (data.answered) data.answered.forEach(k => answered.add(k));
-                if (data.wrongAnswers) data.wrongAnswers.forEach(k => wrongAnswers.add(k));
-                if (data.reviewList) data.reviewList.forEach(k => reviewList.add(k));
+                data.answered?.forEach(i => answered.add(i));
+                data.wrongAnswers?.forEach(i => wrongAnswers.add(i));
+                data.reviewList?.forEach(i => reviewList.add(i));
+                // selectedAnswers রিস্টোর
                 if (data.selectedAnswers) {
-                    data.selectedAnswers.forEach(([k, v]) => selectedAnswers.set(k, v));
+                    data.selectedAnswers.forEach(([key, idx]) => selectedAnswers.set(key, idx));
                 }
-                // পুরো প্রশ্নগুলো লোড
-                if (data.reviewedQuestions) {
-                    data.reviewedQuestions.forEach(([k, q]) => {
-                        reviewedQuestions.set(k, q);
-                        reviewList.add(k); // নিশ্চিত করে রাখি
-                    });
-                }
-            } catch (e) {
-                console.error('Error loading progress:', e);
-            }
+                correctCount = data.correctCount || 0;
+                wrongCount = data.wrongCount || 0;
+            } catch (e) { }
         }
 
         // পেজ লোড হলে প্রোগ্রেস লোড করুন
         // পেজ লোড হলে অটোমেটিক কুইজ জেনারেট ও প্রোগ্রেস লোড করুন
         window.addEventListener('DOMContentLoaded', () => {
             const savedRaw = localStorage.getItem('mcq_raw_questions');
-            const savedSubject = localStorage.getItem('mcq_current_subject') || 'custom';
-            const savedChapter = localStorage.getItem('mcq_current_chapter') || '0';
-
             if (savedRaw && savedRaw.trim() !== '') {
                 document.getElementById('mdInput').value = savedRaw;
 
-                questions = parseMarkdown(savedRaw, savedSubject, savedChapter);
+                // ১. মার্কডাউন থেকে কুইজ ডাটা স্ট্রাকচার তৈরি
+                questions = parseMarkdown(savedRaw);
 
+                // ২. সেভ করা প্রোগ্রেস লোড
                 loadProgress();
 
+                // Mode ও Timer রিস্টোর
                 examMode = localStorage.getItem('mcq_exam_mode') || 'practice';
                 timerSecondsLeft = parseInt(localStorage.getItem('mcq_timer_seconds')) || 0;
                 examSubmitted = false;
@@ -2517,6 +2521,7 @@
                 startTimerIfNeeded();
 
                 if (questions.length > 0) {
+                    // UI ইন্টারফেস অ্যাক্টিভ করা
                     document.getElementById('scoreBar').style.display = 'flex';
                     document.getElementById('tabBar').style.display = 'flex';
                     document.getElementById('parseStatus').style.display = 'block';
@@ -2529,6 +2534,7 @@
                     document.getElementById('wrongTabCount').textContent = wrongAnswers.size;
                     document.getElementById('reviewTabCount').textContent = reviewList.size;
 
+                    // ৩. কুইজ রেন্ডার করা
                     renderQuiz();
                 }
             }
