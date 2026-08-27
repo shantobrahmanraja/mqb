@@ -1669,14 +1669,13 @@
 
             questions = parseMarkdown(raw);
 
-            // নতুন প্রশ্ন লোড করার সময় আগের সেশন রিসেট করা
+            // নতুন প্রশ্ন লোড করার সময় সেশন রিসেট করা (রিভিউ লিস্ট বাদ দিয়ে)
             answered.clear();
             selectedAnswers.clear();
             wrongAnswers.clear();
-            reviewList.clear();
             correctCount = 0;
             wrongCount = 0;
-            saveProgress(); // লোকাল স্টোরেজের প্রোগ্রেসও রিসেট হবে
+            saveProgress(); // লোকাল স্টোরেজের প্রোগ্রেস আপডেট
 
             if (questions.length === 0) {
                 status.style.display = 'block';
@@ -1700,7 +1699,7 @@
 
             document.getElementById('tabBar').style.display = 'flex';
             document.getElementById('wrongTabCount').textContent = 0;
-            document.getElementById('reviewTabCount').textContent = 0;
+            document.getElementById('reviewTabCount').textContent = reviewList.size;
         }
 
         function typesetMath(container) {
@@ -2358,6 +2357,7 @@
             questions = [];
             answered.clear();
             selectedAnswers.clear();
+            wrongAnswers.clear();
             correctCount = 0;
             wrongCount = 0;
 
@@ -2389,14 +2389,13 @@
 
             localStorage.removeItem('mcq_exam_mode');
             localStorage.removeItem('mcq_timer_seconds');
-            localStorage.removeItem('mcq_progress');
             localStorage.removeItem('mcq_raw_questions');
             localStorage.removeItem('mcq_is_exam');
             localStorage.removeItem('mcq_marks_per_q');
             localStorage.removeItem('mcq_negative_mark');
 
-            // wrongAnswers.clear();
-            // reviewList.clear();
+            saveProgress(); // প্রোগ্রেস সেভ করে লোকাল স্টোরেজ আপডেট রাখা
+
             document.getElementById('tabBar').style.display = 'none';
         }
 
