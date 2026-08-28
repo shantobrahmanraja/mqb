@@ -826,30 +826,49 @@
 
 <!-- Subject + Chapter Selection Modal -->
 <div id="demoModal" class="modal-overlay" style="display:none;">
-    <div class="modal-box">
+    <div class="modal-box" style="max-width:480px;">
         <h2>🔃 Load Demo Questions</h2>
 
         <label>Select Subject</label>
-        <select id="subjectSelect">
+        <select id="subjectSelect" onchange="onDemoSubjectChange()">
             <option value="">-- Select Subject --</option>
-            <option value="physics1">Physics 1st</option>
-            <option value="physics2">Physics 2nd</option>
-            <option value="chemistry1">Chemistry 1st</option>
-            <option value="chemistry2">Chemistry 2nd</option>
-            <option value="biology1">Biology 1st</option>
-            <option value="biology2">Biology 2nd</option>
-            <option value="english">English</option>
-            <option value="gk">General Knowledge</option>
         </select>
+        <p id="subjectAvailability" style="font-size:0.82rem; color:#94a3b8; margin-top:6px;"></p>
 
-        <label>Select Chapter (1 - 100)</label>
+        <label>Select Chapter</label>
         <select id="chapterSelect">
             <option value="">-- Select Chapter --</option>
         </select>
+        <p id="chapterAvailability" style="font-size:0.82rem; color:#94a3b8; margin-top:6px;"></p>
+
+        <label style="margin-top:14px;">Mode</label>
+        <div style="display:flex; gap:20px; margin:8px 0 10px; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin:0;">
+                <input type="radio" name="demoMode" value="practice" checked onchange="toggleDemoExamOptions()">
+                Practice Mode
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin:0;">
+                <input type="radio" name="demoMode" value="exam" onchange="toggleDemoExamOptions()"> Exam Mode
+            </label>
+        </div>
+
+        <div id="demoExamOptions" style="display:none;">
+            <label style="margin-top:8px;">Timer (Minutes) – খালি রাখলে টাইমার বন্ধ</label>
+            <input type="number" id="demoTimerMin" min="0" max="300" placeholder="e.g., 30"
+                style="width:100%; padding:12px 14px; border-radius:14px; border:1px solid var(--glass-border); background:rgba(2,6,23,0.7); color:#f8fafc; font-size:1rem;">
+
+            <label style="margin-top:10px;">Marks per question</label>
+            <input type="number" id="demoMarksPerQ" min="0" max="10" step="0.25" value="1"
+                style="width:100%; padding:12px 14px; border-radius:14px; border:1px solid var(--glass-border); background:rgba(2,6,23,0.7); color:#f8fafc; font-size:1rem;">
+
+            <label style="margin-top:10px;">Negative Marking (Wrong = −?)</label>
+            <input type="number" id="demoNegativeMark" min="0" max="5" step="0.25" value="0"
+                style="width:100%; padding:12px 14px; border-radius:14px; border:1px solid var(--glass-border); background:rgba(2,6,23,0.7); color:#f8fafc; font-size:1rem;">
+        </div>
 
         <div class="modal-actions">
             <button class="btn-secondary" onclick="closeDemoModal()">Cancel</button>
-            <button class="btn-primary" onclick="loadDemoQuestions()">Load Questions</button>
+            <button class="btn-primary" id="demoLoadBtn" onclick="loadDemoQuestions()">Load Questions</button>
         </div>
 
         <p id="modalStatus" style="margin-top:12px; font-size:0.9rem; color:#94a3b8;"></p>
@@ -961,8 +980,24 @@
                 <button class="btn-secondary" onclick="openExamModal()" style="background:#7c3aed;">📝 Make
                     Exam</button>
                 <button class="btn-secondary" onclick="clearAll()">❌ Remove Demo Questions</button>
+                <button class="btn-secondary" onclick="clearCurrentProgress()"
+                    style="background:rgba(127,29,29,0.7); border-color:rgba(248,113,113,0.4);">🗑 Remove
+                    Progress</button>
             </div>
             <div class="parse-status" id="parseStatus"></div>
+        </div>
+
+        <div id="sessionInfoBar"
+            style="display:none; justify-content:center; flex-wrap:wrap; gap:10px; margin:14px 0 6px;">
+            <div class="score-item" id="sessionSubjectItem" style="color:#93c5fd;">
+                📚 <span id="sessionSubjectText">—</span>
+            </div>
+            <div class="score-item" id="sessionChapterItem" style="color:#c4b5fd;">
+                📖 <span id="sessionChapterText">—</span>
+            </div>
+            <div class="score-item" id="sessionModeItem" style="color:#6ee7b7;">
+                🎯 <span id="sessionModeText">Practice Mode</span>
+            </div>
         </div>
 
         <div class="score-bar" id="scoreBar" style="display:none;">
@@ -1016,17 +1051,66 @@
         const JSONBIN_BIN_ID = '6a89af14f5f4af5e29357c6d';   // ← এখানে আপনার Bin ID বসাবেন
         const JSONBIN_API_KEY = '$2a$10$02CD02ltZ7nPORFB3j6kNeoBV7.YRfp7FYO0DvRTorf8h4TFlcpl6'; // ← যদি প্রাইভেট হয় (পাবলিক হলে লাগবে না)
 
-        function openDemoModal() {
-            // চ্যাপ্টার ১–৩২ জেনারেট
+        async function openDemoModal() {
+            const statusEl = document.getElementById('modalStatus');
+            const subjectSelect = document.getElementById('subjectSelect');
             const chapterSelect = document.getElementById('chapterSelect');
-            chapterSelect.innerHTML = '<option value="">-- Choose Chapter --</option>';
-            for (let i = 1; i <= 100; i++) {
-                chapterSelect.innerHTML += `<option value="${i}">Chapter ${i}</option>`;
-            }
+            const subInfo = document.getElementById('subjectAvailability');
+            const chInfo = document.getElementById('chapterAvailability');
 
-            document.getElementById('subjectSelect').value = '';
-            document.getElementById('modalStatus').textContent = '';
+            statusEl.textContent = 'ডেটা লোড হচ্ছে...';
+            statusEl.style.color = '#94a3b8';
+            subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+            chapterSelect.innerHTML = '<option value="">-- Select Chapter --</option>';
+            if (subInfo) subInfo.textContent = '';
+            if (chInfo) chInfo.textContent = '';
+
+            const practiceRadio = document.querySelector('input[name="demoMode"][value="practice"]');
+            if (practiceRadio) practiceRadio.checked = true;
+            toggleDemoExamOptions();
+
             document.getElementById('demoModal').style.display = 'flex';
+
+            try {
+                const records = await ensureQuestionsCache();
+                demoChapterIndex = buildDemoChapterIndex(records);
+
+                const subjectsWithData = Object.keys(demoChapterIndex).sort((a, b) => {
+                    const order = Object.keys(SUBJECT_LABELS);
+                    const ia = order.indexOf(a), ib = order.indexOf(b);
+                    if (ia === -1 && ib === -1) return a.localeCompare(b);
+                    if (ia === -1) return 1;
+                    if (ib === -1) return -1;
+                    return ia - ib;
+                });
+
+                if (subjectsWithData.length === 0) {
+                    statusEl.textContent = 'questions.json এ কোনো প্রশ্ন পাওয়া যায়নি।';
+                    statusEl.style.color = '#f87171';
+                    return;
+                }
+
+                subjectsWithData.forEach(sub => {
+                    const label = SUBJECT_LABELS[sub] || sub;
+                    const count = demoChapterIndex[sub].length;
+                    subjectSelect.innerHTML += `<option value="${sub}">${label} (${count} chapters)</option>`;
+                });
+
+                const summary = subjectsWithData.map(s => {
+                    const label = SUBJECT_LABELS[s] || s;
+                    return `${label}: Ch ${demoChapterIndex[s].join(', ')}`;
+                }).join(' · ');
+                statusEl.textContent = `✅ উপলব্ধ: ${subjectsWithData.length} টি সাবজেক্ট`;
+                statusEl.style.color = '#34d399';
+                if (subInfo) {
+                    subInfo.textContent = summary.length > 220 ? summary.slice(0, 220) + '…' : summary;
+                    subInfo.style.color = '#94a3b8';
+                }
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = 'সমস্যা: ' + err.message;
+                statusEl.style.color = '#f87171';
+            }
         }
 
         function closeDemoModal() {
@@ -1083,10 +1167,151 @@
         //     }
         // }
 
+        const SUBJECT_LABELS = {
+            physics1: 'Physics 1st',
+            physics2: 'Physics 2nd',
+            chemistry1: 'Chemistry 1st',
+            chemistry2: 'Chemistry 2nd',
+            biology1: 'Biology 1st (Botany)',
+            biology2: 'Biology 2nd (Zoology)',
+            english: 'English',
+            gk: 'General Knowledge'
+        };
+
+        // subject → sorted chapter numbers (যেগুলো questions.json এ আছে)
+        let demoChapterIndex = null;
+
+        function buildDemoChapterIndex(records) {
+            const index = {};
+            if (!Array.isArray(records)) return index;
+            for (const r of records) {
+                if (!r || !r.subject || r.chapter === undefined || r.chapter === null || !r.questions) continue;
+                const sub = String(r.subject);
+                const ch = String(r.chapter);
+                if (!index[sub]) index[sub] = new Set();
+                index[sub].add(ch);
+            }
+            const out = {};
+            for (const sub of Object.keys(index)) {
+                out[sub] = [...index[sub]].sort((a, b) => {
+                    const na = parseInt(a, 10), nb = parseInt(b, 10);
+                    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+                    return String(a).localeCompare(String(b));
+                });
+            }
+            return out;
+        }
+
+        function toggleDemoExamOptions() {
+            const mode = document.querySelector('input[name="demoMode"]:checked');
+            const isExam = mode && mode.value === 'exam';
+            const opts = document.getElementById('demoExamOptions');
+            if (opts) opts.style.display = isExam ? 'block' : 'none';
+            const btn = document.getElementById('demoLoadBtn');
+            if (btn) btn.textContent = isExam ? '🚀 Start Chapter Exam' : 'Load Questions';
+        }
+
+        function onDemoSubjectChange() {
+            const subject = document.getElementById('subjectSelect').value;
+            const chapterSelect = document.getElementById('chapterSelect');
+            const chInfo = document.getElementById('chapterAvailability');
+            const subInfo = document.getElementById('subjectAvailability');
+
+            chapterSelect.innerHTML = '<option value="">-- Select Chapter --</option>';
+
+            if (!subject || !demoChapterIndex || !demoChapterIndex[subject]) {
+                if (chInfo) chInfo.textContent = '';
+                if (subInfo) subInfo.textContent = subject ? 'এই সাবজেক্টে কোনো চ্যাপ্টার পাওয়া যায়নি।' : '';
+                return;
+            }
+
+            const chapters = demoChapterIndex[subject];
+            chapters.forEach(ch => {
+                chapterSelect.innerHTML += `<option value="${ch}">Chapter ${ch}</option>`;
+            });
+
+            if (subInfo) {
+                subInfo.textContent = `উপলব্ধ চ্যাপ্টার: ${chapters.length} টি (Chapter ${chapters.join(', ')})`;
+                subInfo.style.color = '#34d399';
+            }
+            if (chInfo) {
+                chInfo.textContent = `এই সাবজেক্ট থেকে যেকোনো চ্যাপ্টার বেছে নিন।`;
+                chInfo.style.color = '#94a3b8';
+            }
+        }
+
+        async function openDemoModal() {
+            const statusEl = document.getElementById('modalStatus');
+            const subjectSelect = document.getElementById('subjectSelect');
+            const chapterSelect = document.getElementById('chapterSelect');
+            const subInfo = document.getElementById('subjectAvailability');
+            const chInfo = document.getElementById('chapterAvailability');
+
+            statusEl.textContent = 'ডেটা লোড হচ্ছে...';
+            statusEl.style.color = '#94a3b8';
+            subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+            chapterSelect.innerHTML = '<option value="">-- Select Chapter --</option>';
+            if (subInfo) subInfo.textContent = '';
+            if (chInfo) chInfo.textContent = '';
+
+            const practiceRadio = document.querySelector('input[name="demoMode"][value="practice"]');
+            if (practiceRadio) practiceRadio.checked = true;
+            toggleDemoExamOptions();
+
+            document.getElementById('demoModal').style.display = 'flex';
+
+            try {
+                const records = await ensureQuestionsCache();
+                demoChapterIndex = buildDemoChapterIndex(records);
+
+                const subjectsWithData = Object.keys(demoChapterIndex).sort((a, b) => {
+                    const order = Object.keys(SUBJECT_LABELS);
+                    const ia = order.indexOf(a), ib = order.indexOf(b);
+                    if (ia === -1 && ib === -1) return a.localeCompare(b);
+                    if (ia === -1) return 1;
+                    if (ib === -1) return -1;
+                    return ia - ib;
+                });
+
+                if (subjectsWithData.length === 0) {
+                    statusEl.textContent = 'questions.json এ কোনো প্রশ্ন পাওয়া যায়নি।';
+                    statusEl.style.color = '#f87171';
+                    return;
+                }
+
+                subjectsWithData.forEach(sub => {
+                    const label = SUBJECT_LABELS[sub] || sub;
+                    const count = demoChapterIndex[sub].length;
+                    subjectSelect.innerHTML += `<option value="${sub}">${label} (${count} chapters)</option>`;
+                });
+
+                const summary = subjectsWithData.map(s => {
+                    const label = SUBJECT_LABELS[s] || s;
+                    return `${label}: Ch ${demoChapterIndex[s].join(', ')}`;
+                }).join(' · ');
+                statusEl.textContent = `✅ উপলব্ধ: ${subjectsWithData.length} টি সাবজেক্ট`;
+                statusEl.style.color = '#34d399';
+                if (subInfo) {
+                    subInfo.textContent = summary.length > 220 ? summary.slice(0, 220) + '…' : summary;
+                    subInfo.style.color = '#94a3b8';
+                }
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = 'সমস্যা: ' + err.message;
+                statusEl.style.color = '#f87171';
+            }
+        }
+
+        function closeDemoModal() {
+            document.getElementById('demoModal').style.display = 'none';
+        }
+
         async function loadDemoQuestions() {
             const subject = document.getElementById('subjectSelect').value;
             const chapter = document.getElementById('chapterSelect').value;
             const statusEl = document.getElementById('modalStatus');
+            const modeRadio = document.querySelector('input[name="demoMode"]:checked');
+            const demoMode = modeRadio ? modeRadio.value : 'practice';
 
             if (!subject || !chapter) {
                 statusEl.textContent = 'সাবজেক্ট ও চ্যাপ্টার দুটোই সিলেক্ট করুন!';
@@ -1098,9 +1323,6 @@
             statusEl.style.color = '#94a3b8';
 
             try {
-                statusEl.textContent = 'লোড হচ্ছে...';
-                statusEl.style.color = '#94a3b8';
-
                 const records = await ensureQuestionsCache();
 
                 const matched = Array.isArray(records)
@@ -1114,8 +1336,52 @@
                 }
 
                 document.getElementById('mdInput').value = matched.questions;
+                window._pendingSetKey = subject + '_ch' + chapter;
+
+                currentSubjectId = subject;
+                currentChapterId = String(chapter);
+                currentSessionLabel = null;
+
+                examMode = demoMode;
+                examSubmitted = false;
+                localStorage.setItem('mcq_exam_mode', examMode);
+
+                if (demoMode === 'exam') {
+                    window._forceFreshSession = true;
+                    const timerMin = parseInt(document.getElementById('demoTimerMin').value) || 0;
+                    timerSecondsLeft = timerMin * 60;
+                    marksPerQuestion = parseFloat(document.getElementById('demoMarksPerQ').value) || 1;
+                    negativeMark = parseFloat(document.getElementById('demoNegativeMark').value) || 0;
+                    if (marksPerQuestion < 0) marksPerQuestion = 1;
+                    if (negativeMark < 0) negativeMark = 0;
+                    lastExamScore = null;
+                    localStorage.setItem('mcq_timer_seconds', timerSecondsLeft);
+                    localStorage.setItem('mcq_marks_per_q', String(marksPerQuestion));
+                    localStorage.setItem('mcq_negative_mark', String(negativeMark));
+                } else {
+                    window._forceFreshSession = false;
+                    timerSecondsLeft = 0;
+                    localStorage.setItem('mcq_timer_seconds', '0');
+                }
+
                 closeDemoModal();
                 parseAndGenerate();
+
+                if (demoMode === 'exam') {
+                    document.getElementById('examSubmitArea').style.display = 'flex';
+                    const submitBtn = document.querySelector('#examSubmitArea .btn-primary');
+                    if (submitBtn) submitBtn.style.display = 'inline-block';
+                    startTimerIfNeeded();
+                } else {
+                    const area = document.getElementById('examSubmitArea');
+                    if (area) area.style.display = 'none';
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                    }
+                    const timerDisplay = document.getElementById('timerDisplay');
+                    if (timerDisplay) timerDisplay.style.display = 'none';
+                }
 
             } catch (err) {
                 console.error(err);
@@ -1333,6 +1599,13 @@
                 localStorage.setItem('mcq_is_exam', '1'); // flag for exam mode
 
                 closeExamModal();
+
+                currentSubjectId = null;
+                currentChapterId = null;
+                currentSessionLabel = 'Mixed Exam (' + selectedBlocks.length + ' Q)';
+                window._keepSessionMeta = true;
+                window._pendingSetKey = 'exam_' + generateSimpleHash(combinedMarkdown);
+
                 parseAndGenerate();
 
                 // Timer শুরু করো (যদি সেট করা থাকে)
@@ -1659,23 +1932,108 @@
         const reviewList = new Set();        // কোনগুলো রিভিউতে রাখা হয়েছে
         let currentTab = 'all';
         const selectedAnswers = new Map();   // qKey → selected option index
+        let currentQuestionSetKey = null;    // সাবজেক্ট_চ্যাপ্টার বা কন্টেন্ট হ্যাশ
+
+        let currentSubjectId = null;         // e.g. physics1
+        let currentChapterId = null;         // e.g. 2
+        let currentSessionLabel = null;      // কাস্টম/এক্সাম লেবেল
+
+        function updateSessionInfo() {
+            const bar = document.getElementById('sessionInfoBar');
+            const subEl = document.getElementById('sessionSubjectText');
+            const chEl = document.getElementById('sessionChapterText');
+            const modeEl = document.getElementById('sessionModeText');
+            const modeItem = document.getElementById('sessionModeItem');
+            if (!bar || !subEl || !chEl || !modeEl) return;
+
+            if (currentSubjectId) {
+                subEl.textContent = (typeof SUBJECT_LABELS !== 'undefined' && SUBJECT_LABELS[currentSubjectId])
+                    ? SUBJECT_LABELS[currentSubjectId]
+                    : currentSubjectId;
+            } else if (currentSessionLabel) {
+                subEl.textContent = currentSessionLabel;
+            } else {
+                subEl.textContent = 'কাস্টম / পেস্ট করা প্রশ্ন';
+            }
+
+            if (currentChapterId) {
+                chEl.textContent = 'Chapter ' + currentChapterId;
+            } else if (currentSessionLabel && !currentSubjectId) {
+                chEl.textContent = '—';
+            } else {
+                chEl.textContent = currentQuestionSetKey && String(currentQuestionSetKey).startsWith('custom_')
+                    ? 'কাস্টম সেট'
+                    : '—';
+            }
+
+            if (examMode === 'exam') {
+                modeEl.textContent = examSubmitted ? 'Exam Mode (Submitted)' : 'Exam Mode';
+                if (modeItem) modeItem.style.color = '#fbbf24';
+            } else {
+                modeEl.textContent = 'Practice Mode';
+                if (modeItem) modeItem.style.color = '#6ee7b7';
+            }
+
+            bar.style.display = 'flex';
+
+            localStorage.setItem('mcq_session_subject', currentSubjectId || '');
+            localStorage.setItem('mcq_session_chapter', currentChapterId || '');
+            localStorage.setItem('mcq_session_label', currentSessionLabel || '');
+        }
+
+        function generateSimpleHash(str) {
+            let hash = 0;
+            const s = String(str || '');
+            for (let i = 0; i < s.length; i++) {
+                const char = s.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash |= 0;
+            }
+            return 'custom_' + Math.abs(hash);
+        }
 
         function parseAndGenerate() {
             const raw = document.getElementById('mdInput').value;
             const status = document.getElementById('parseStatus');
 
-            // লোকাল স্টোরেজে মার্কডাউন সেভ করা
+            // সেট কী নির্ধারণ: ডেমো/এক্সাম থেকে pending থাকলে সেটা, নইলে কন্টেন্ট হ্যাশ
+            if (window._pendingSetKey) {
+                currentQuestionSetKey = window._pendingSetKey;
+                window._pendingSetKey = null;
+            } else {
+                currentQuestionSetKey = generateSimpleHash(raw);
+                if (!window._keepSessionMeta) {
+                    currentSubjectId = null;
+                    currentChapterId = null;
+                    currentSessionLabel = null;
+                }
+                window._keepSessionMeta = false;
+            }
+            if (currentQuestionSetKey && /_ch/.test(currentQuestionSetKey) && !currentSubjectId) {
+                const m = String(currentQuestionSetKey).match(/^(.+)_ch(.+)$/);
+                if (m) {
+                    currentSubjectId = m[1];
+                    currentChapterId = m[2];
+                }
+            }
+            localStorage.setItem('mcq_last_key', currentQuestionSetKey);
             localStorage.setItem('mcq_raw_questions', raw);
 
             questions = parseMarkdown(raw);
 
-            // নতুন প্রশ্ন লোড করার সময় সেশন রিসেট করা (রিভিউ লিস্ট বাদ দিয়ে)
+            // মেমোরি রিসেট, তারপর (প্র্যাকটিস হলে) এই সেটের সেভ করা প্রোগ্রেস লোড
             answered.clear();
             selectedAnswers.clear();
             wrongAnswers.clear();
+            reviewList.clear();
             correctCount = 0;
             wrongCount = 0;
-            saveProgress(); // লোকাল স্টোরেজের প্রোগ্রেস আপডেট
+            if (window._forceFreshSession) {
+                // Chapter Exam: প্রোগ্রেস লোড করব না
+                window._forceFreshSession = false;
+            } else {
+                loadProgress();
+            }
 
             if (questions.length === 0) {
                 status.style.display = 'block';
@@ -1688,17 +2046,21 @@
 
             status.style.display = 'block';
             status.className = 'parse-status';
-            status.textContent = `✅ ${questions.length} টি প্রশ্ন সফলভাবে ডিটেক্ট করা হয়েছে!`;
+            const progressNote = (answered.size > 0 || reviewList.size > 0)
+                ? ` (আগের প্রোগ্রেস লোড হয়েছে: সঠিক ${correctCount}, ভুল ${wrongCount})`
+                : '';
+            status.textContent = `✅ ${questions.length} টি প্রশ্ন সফলভাবে ডিটেক্ট করা হয়েছে!` + progressNote;
 
             document.getElementById('scoreBar').style.display = 'flex';
             document.getElementById('totalQ').textContent = questions.length;
-            document.getElementById('correctCount').textContent = '0';
-            document.getElementById('wrongCount').textContent = '0';
+            document.getElementById('correctCount').textContent = correctCount;
+            document.getElementById('wrongCount').textContent = wrongCount;
 
+            updateSessionInfo();
             renderQuiz();
 
             document.getElementById('tabBar').style.display = 'flex';
-            document.getElementById('wrongTabCount').textContent = 0;
+            document.getElementById('wrongTabCount').textContent = wrongAnswers.size;
             document.getElementById('reviewTabCount').textContent = reviewList.size;
         }
 
@@ -1722,6 +2084,7 @@
         function submitExam() {
             if (examSubmitted) return;
             examSubmitted = true;
+            updateSessionInfo();
 
             if (timerInterval) {
                 clearInterval(timerInterval);
@@ -1912,7 +2275,7 @@
                 + 'code{font-family:ui-monospace,monospace;background:rgba(59,130,246,0.15);padding:1px 6px;border-radius:6px;color:#93c5fd;}'
                 + 'strong{color:#f8fafc;}.footer{text-align:center;margin-top:28px;color:#64748b;font-size:0.85rem;}'
                 + '@media print{body{background:#fff;color:#111;}.header,.stat,.q-card{background:#f8fafc;border-color:#e2e8f0;}}'
-                + '</></head><body><div class="wrap">'
+                + '</style></head><body><div class="wrap">'
                 + '<div class="header"><h1>📝 Exam Result Report</h1>'
                 + '<div class="meta">' + dateStr + ' · ' + modeLabel + '</div></div>'
                 + '<div class="summary">'
@@ -2348,18 +2711,26 @@
         }
 
         function clearAll() {
+            // শুধু UI/সেশন ক্লিয়ার — কোনো সেটের সেভ করা প্রোগ্রেস মুছে না
             document.getElementById('mdInput').value = '';
             document.getElementById('quiz-container').innerHTML = `
     <div class="empty-state">Paste The Questions In Markdown Format & Click <strong>Make Practice Set</strong> Button To Start
                 Practicing</div>`;
+            const sessionBar = document.getElementById('sessionInfoBar');
+            if (sessionBar) sessionBar.style.display = 'none';
             document.getElementById('scoreBar').style.display = 'none';
             document.getElementById('parseStatus').style.display = 'none';
             questions = [];
             answered.clear();
             selectedAnswers.clear();
             wrongAnswers.clear();
+            reviewList.clear();
             correctCount = 0;
             wrongCount = 0;
+            currentQuestionSetKey = null;
+            currentSubjectId = null;
+            currentChapterId = null;
+            currentSessionLabel = null;
 
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = null;
@@ -2393,10 +2764,52 @@
             localStorage.removeItem('mcq_is_exam');
             localStorage.removeItem('mcq_marks_per_q');
             localStorage.removeItem('mcq_negative_mark');
-
-            saveProgress(); // প্রোগ্রেস সেভ করে লোকাল স্টোরেজ আপডেট রাখা
+            localStorage.removeItem('mcq_last_key');
+            localStorage.removeItem('mcq_session_subject');
+            localStorage.removeItem('mcq_session_chapter');
+            localStorage.removeItem('mcq_session_label');
+            // mcq_prog_* কীগুলো ইচ্ছাকৃতভাবে রাখা হয়েছে — অন্যান্য চ্যাপ্টারের প্রোগ্রেস অক্ষুণ্ণ
 
             document.getElementById('tabBar').style.display = 'none';
+        }
+
+        /** বর্তমান লোড করা সেটের প্রোগ্রেস মুছে ফেলে */
+        function clearCurrentProgress() {
+            if (!currentQuestionSetKey || questions.length === 0) {
+                alert('কোনো প্রশ্নসেট লোড নেই। আগে প্রশ্ন লোড করুন।');
+                return;
+            }
+            if (!confirm('বর্তমান সেটের সব প্রোগ্রেস (সঠিক/ভুল/রিভিউ) মুছে যাবে। নিশ্চিত?')) return;
+
+            localStorage.removeItem('mcq_prog_' + currentQuestionSetKey);
+            // পুরনো গ্লোবাল কী থাকলে সেটাও
+            localStorage.removeItem('mcq_progress');
+
+            answered.clear();
+            selectedAnswers.clear();
+            wrongAnswers.clear();
+            reviewList.clear();
+            correctCount = 0;
+            wrongCount = 0;
+            examSubmitted = false;
+
+            document.getElementById('correctCount').textContent = '0';
+            document.getElementById('wrongCount').textContent = '0';
+            document.getElementById('wrongTabCount').textContent = '0';
+            document.getElementById('reviewTabCount').textContent = '0';
+
+            const obtainedItem = document.getElementById('obtainedMarksItem');
+            if (obtainedItem) obtainedItem.style.display = 'none';
+
+            renderQuiz();
+            showTab('all');
+
+            const status = document.getElementById('parseStatus');
+            if (status) {
+                status.style.display = 'block';
+                status.className = 'parse-status';
+                status.textContent = '🗑 বর্তমান সেটের প্রোগ্রেস মুছে ফেলা হয়েছে।';
+            }
         }
 
         // রিভিউ টগল
@@ -2466,28 +2879,34 @@
             });
         }
 
-        // ========== localStorage ==========
+        // ========== localStorage (per question-set) ==========
         function saveProgress() {
+            if (!currentQuestionSetKey) return;
             const data = {
                 answered: [...answered],
                 wrongAnswers: [...wrongAnswers],
                 reviewList: [...reviewList],
-                selectedAnswers: [...selectedAnswers],   // নতুন
+                selectedAnswers: [...selectedAnswers],
                 correctCount,
                 wrongCount
             };
-            localStorage.setItem('mcq_progress', JSON.stringify(data));
+            localStorage.setItem('mcq_prog_' + currentQuestionSetKey, JSON.stringify(data));
+            localStorage.setItem('mcq_last_key', currentQuestionSetKey);
         }
 
         function loadProgress() {
-            const saved = localStorage.getItem('mcq_progress');
+            if (!currentQuestionSetKey) return;
+            const saved = localStorage.getItem('mcq_prog_' + currentQuestionSetKey);
             if (!saved) return;
             try {
                 const data = JSON.parse(saved);
+                answered.clear();
+                wrongAnswers.clear();
+                reviewList.clear();
+                selectedAnswers.clear();
                 data.answered?.forEach(i => answered.add(i));
                 data.wrongAnswers?.forEach(i => wrongAnswers.add(i));
                 data.reviewList?.forEach(i => reviewList.add(i));
-                // selectedAnswers রিস্টোর
                 if (data.selectedAnswers) {
                     data.selectedAnswers.forEach(([key, idx]) => selectedAnswers.set(key, idx));
                 }
@@ -2496,20 +2915,62 @@
             } catch (e) { }
         }
 
+        // ১. প্রোগ্রেস সেভ করার ফাংশন
+        function saveCurrentProgress() {
+            if (!currentQuestionSetKey) return;
+            const progressData = {
+                userAnswers: userAnswers,
+                reviewList: Array.from(reviewList),
+                wrongAnswers: Array.from(wrongAnswers),
+                correctCount: correctCount,
+                wrongCount: wrongCount
+            };
+            localStorage.setItem('mcq_prog_' + currentQuestionSetKey, JSON.stringify(progressData));
+            localStorage.setItem('mcq_last_md_input', document.getElementById('mdInput').value);
+            localStorage.setItem('mcq_last_key', currentQuestionSetKey);
+        }
+
+        // ২. ইউনিক আইডি তৈরির জন্য সাহায্যকারী ফাংশন
+        function generateSimpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = (hash << 5) - hash + char;
+                hash |= 0;
+            }
+            return 'custom_' + Math.abs(hash);
+        }
+
         // পেজ লোড হলে প্রোগ্রেস লোড করুন
         // পেজ লোড হলে অটোমেটিক কুইজ জেনারেট ও প্রোগ্রেস লোড করুন
+        // পেজ লোড হলে শেষ সেট + তার প্রোগ্রেস রিস্টোর
         window.addEventListener('DOMContentLoaded', () => {
             const savedRaw = localStorage.getItem('mcq_raw_questions');
             if (savedRaw && savedRaw.trim() !== '') {
                 document.getElementById('mdInput').value = savedRaw;
 
-                // ১. মার্কডাউন থেকে কুইজ ডাটা স্ট্রাকচার তৈরি
+                currentQuestionSetKey = localStorage.getItem('mcq_last_key') || generateSimpleHash(savedRaw);
                 questions = parseMarkdown(savedRaw);
 
-                // ২. সেভ করা প্রোগ্রেস লোড
+                currentSubjectId = localStorage.getItem('mcq_session_subject') || null;
+                currentChapterId = localStorage.getItem('mcq_session_chapter') || null;
+                currentSessionLabel = localStorage.getItem('mcq_session_label') || null;
+                if (!currentSubjectId && currentQuestionSetKey && /_ch/.test(currentQuestionSetKey)) {
+                    const m = String(currentQuestionSetKey).match(/^(.+)_ch(.+)$/);
+                    if (m) {
+                        currentSubjectId = m[1];
+                        currentChapterId = m[2];
+                    }
+                }
+
+                answered.clear();
+                selectedAnswers.clear();
+                wrongAnswers.clear();
+                reviewList.clear();
+                correctCount = 0;
+                wrongCount = 0;
                 loadProgress();
 
-                // Mode ও Timer রিস্টোর
                 examMode = localStorage.getItem('mcq_exam_mode') || 'practice';
                 timerSecondsLeft = parseInt(localStorage.getItem('mcq_timer_seconds')) || 0;
                 examSubmitted = false;
@@ -2520,12 +2981,14 @@
                 startTimerIfNeeded();
 
                 if (questions.length > 0) {
-                    // UI ইন্টারফেস অ্যাক্টিভ করা
                     document.getElementById('scoreBar').style.display = 'flex';
                     document.getElementById('tabBar').style.display = 'flex';
                     document.getElementById('parseStatus').style.display = 'block';
                     document.getElementById('parseStatus').className = 'parse-status';
-                    document.getElementById('parseStatus').textContent = `✅ ${questions.length} টি প্রশ্ন লোড হয়েছে!`;
+                    const progressNote = (answered.size > 0 || reviewList.size > 0)
+                        ? ` (প্রোগ্রেস: সঠিক ${correctCount}, ভুল ${wrongCount})`
+                        : '';
+                    document.getElementById('parseStatus').textContent = `✅ ${questions.length} টি প্রশ্ন লোড হয়েছে!` + progressNote;
 
                     document.getElementById('totalQ').textContent = questions.length;
                     document.getElementById('correctCount').textContent = correctCount;
@@ -2533,7 +2996,8 @@
                     document.getElementById('wrongTabCount').textContent = wrongAnswers.size;
                     document.getElementById('reviewTabCount').textContent = reviewList.size;
 
-                    // ৩. কুইজ রেন্ডার করা
+                    updateSessionInfo();
+
                     renderQuiz();
                 }
             }
