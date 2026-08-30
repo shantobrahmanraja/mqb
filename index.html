@@ -12,6 +12,7 @@
         };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/typed.js@2.1.0/dist/typed.umd.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@100..800&family=Noto+Sans+Bengali:wght@100..900&display=swap');
 
@@ -821,6 +822,124 @@
                 font-size: 0.85rem;
             }
         }
+
+        /* ===== Better Button Layout (Desktop + Mobile) ===== */
+        .btn-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .btn-row button {
+            width: 100%;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            white-space: nowrap;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            border-radius: 14px;
+            line-height: 1.3;
+        }
+
+        /* Primary button slightly stronger */
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Exam button special color */
+        .btn-row button[style*="7c3aed"] {
+            background: linear-gradient(135deg, #7c3aed, #6366f1) !important;
+            color: white !important;
+            border: none !important;
+        }
+
+        /* Clear progress (danger) */
+        .btn-row button[style*="127,29,29"] {
+            background: rgba(127, 29, 29, 0.75) !important;
+            border-color: rgba(248, 113, 113, 0.45) !important;
+            color: #fecaca !important;
+        }
+
+        /* Mobile: 2 columns when possible */
+        @media (max-width: 640px) {
+            .btn-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .btn-row button {
+                font-size: 0.88rem;
+                padding: 12px 10px;
+                min-height: 46px;
+                white-space: normal;
+            }
+
+            /* Last odd button full width if needed */
+            .btn-row button:last-child:nth-child(odd) {
+                grid-column: 1 / -1;
+            }
+        }
+
+        /* Very small phones */
+        @media (max-width: 380px) {
+            .btn-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Typed.js – smooth look */
+        .typed-wrap {
+            min-height: 1.8em;
+            margin-top: 10px;
+            font-size: 1.08rem;
+            color: #cbd5e1;
+            font-weight: 500;
+            position: relative;
+            z-index: 2;
+            letter-spacing: 0.01em;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .typed-wrap span,
+        #typedText {
+            color: #e2e8f0 !important;
+            transition: opacity 0.15s ease;
+        }
+
+        /* মসৃণ ব্লিঙ্কিং কার্সর */
+        .typed-cursor {
+            color: #60a5fa !important;
+            font-weight: 300 !important;
+            opacity: 1 !important;
+            animation: typedBlink 0.85s step-end infinite !important;
+            margin-left: 2px;
+            vertical-align: baseline;
+        }
+
+        @keyframes typedBlink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .typed-wrap {
+                font-size: 0.95rem;
+                min-height: 1.6em;
+            }
+        }
     </style>
 </head>
 
@@ -967,19 +1086,21 @@
     <div class="container">
         <header>
             <h1>📝 Medical Question Bank MCQ</h1>
-            <p>Solve Medical Questions of Previous Years</p>
+            <div class="typed-wrap">
+                <span id="typedText"></span>
+            </div>
         </header>
 
         <div class="input-section">
             <h2>🛂 Paste The Questions In Markdown Format</h2>
             <textarea id="mdInput" placeholder="Paste your questions here..."></textarea>
             <div class="btn-row">
-                <button class="btn-primary" onclick="parseAndGenerate()">🚀 Make Practice Sheet</button>
+                <button class="btn-primary" onclick="parseAndGenerate()">🚀 Make Practice</button>
                 <!-- <button class="btn-secondary" onclick="loadSample()">🔃 Load Demo Questions</button> -->
-                <button class="btn-secondary" onclick="openDemoModal()">🔃 Load Demo Questions</button>
+                <button class="btn-secondary" onclick="openDemoModal()">🔃 Load Questions</button>
                 <button class="btn-secondary" onclick="openExamModal()" style="background:#7c3aed;">📝 Make
                     Exam</button>
-                <button class="btn-secondary" onclick="clearAll()">❌ Remove Demo Questions</button>
+                <button class="btn-secondary" onclick="clearAll()">❌ Remove Questions</button>
                 <button class="btn-secondary" onclick="clearCurrentProgress()"
                     style="background:rgba(127,29,29,0.7); border-color:rgba(248,113,113,0.4);">🗑 Remove
                     Progress</button>
@@ -3001,6 +3122,53 @@
                     renderQuiz();
                 }
             }
+        });
+
+        // ========== Typed.js Auto Type Effect (Smooth) ==========
+        let typedInstance = null;
+
+        function startTypedEffect() {
+            const el = document.getElementById('typedText');
+            if (!el) return;
+
+            // আগে থেকে চলতে থাকলে আবার শুরু করো না
+            if (typedInstance) return;
+
+            if (typeof Typed === 'undefined' && typeof window.Typed === 'undefined') {
+                setTimeout(startTypedEffect, 150);
+                return;
+            }
+
+            const TypedLib = window.Typed || Typed;
+            el.innerHTML = '';
+
+            typedInstance = new TypedLib('#typedText', {
+                strings: [
+                    'Solve Medical Questions of Previous Years',
+                    'Physics • Chemistry • Biology • English • General Knowledge',
+                    'Previous Year MCQ Practice',
+                    'Practice Mode & Exam Mode',
+                    'Smart Progress Tracking'
+                ],
+                typeSpeed: 30,          // একটু ধীর = মসৃণ
+                backSpeed: 5,          // মুছে ফেলার গতি
+                backDelay: 2200,        // টেক্সট থাকার সময়
+                startDelay: 400,
+                loop: true,
+                loopCount: Infinity,
+                showCursor: true,
+                cursorChar: '|',
+                smartBackspace: true,
+                fadeOut: false,
+                shuffle: false,
+                // মসৃণ করার জন্য
+                contentType: 'html'
+            });
+        }
+
+        // শুধু একবার চালাও (double start বন্ধ)
+        window.addEventListener('load', function () {
+            setTimeout(startTypedEffect, 100);
         });
     </script>
 </body>
