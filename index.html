@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <title>Medical MCQ Solving - Rahul Acharya Rajon</title>
     <script>
         MathJax = {
@@ -337,13 +338,11 @@
         }
 
         .feedback.correct {
-            overflow: auto;
             background: var(--correct-bg);
             border-left: 4px solid var(--correct);
         }
 
         .feedback.wrong {
-            overflow: auto;
             background: var(--wrong-bg);
             border-left: 4px solid var(--wrong);
         }
@@ -896,33 +895,14 @@
 
         /* Typed.js – smooth look */
         .typed-wrap {
-            /* আগের min-height এর বদলে ফিক্সড হাইট + ফ্লেক্স */
-            height: 2.8em;
-            /* ২ লাইনের জন্য যথেষ্ট (ফিক্সড) */
-            min-height: 2.8em;
-            max-height: 2.8em;
-            /* বাড়তে দেবে না */
-
-            width: 100%;
-            max-width: 100%;
-
+            min-height: 1.8em;
             margin-top: 10px;
             font-size: 1.08rem;
             color: #cbd5e1;
             font-weight: 500;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-
             position: relative;
             z-index: 2;
             letter-spacing: 0.01em;
-
-            overflow: hidden;
-            /* বাইরে যাওয়া টেক্সট কেটে দেবে (চাইলে visible রাখতে পারেন) */
-
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
@@ -931,13 +911,9 @@
         #typedText {
             color: #e2e8f0 !important;
             transition: opacity 0.15s ease;
-            display: inline-block;
-            /* লেআউট স্থিতিশীল রাখে */
-            max-width: 100%;
-            line-height: 1.4;
         }
 
-        /* কার্সর যাতে হাইট নষ্ট না করে */
+        /* মসৃণ ব্লিঙ্কিং কার্সর */
         .typed-cursor {
             color: #60a5fa !important;
             font-weight: 300 !important;
@@ -945,7 +921,6 @@
             animation: typedBlink 0.85s step-end infinite !important;
             margin-left: 2px;
             vertical-align: baseline;
-            display: inline-block;
         }
 
         @keyframes typedBlink {
@@ -963,19 +938,7 @@
         @media (max-width: 640px) {
             .typed-wrap {
                 font-size: 0.95rem;
-                height: 2.6em;
-                min-height: 2.6em;
-                max-height: 2.6em;
-            }
-        }
-
-        @media (max-width: 380px) {
-            .typed-wrap {
-                height: 3.2em;
-                /* খুব ছোট স্ক্রিনে ২ লাইন লাগতে পারে */
-                min-height: 3.2em;
-                max-height: 3.2em;
-                font-size: 0.9rem;
+                min-height: 1.6em;
             }
         }
     </style>
@@ -1200,7 +1163,7 @@
 
 
         <footer>
-            Medical MCQ Solving &copy; (2021 - 2026) Rahul Acharya Rajon • All Rights Reserved
+            Medical MCQ Solving &copy; Rahul Acharya Rajon 2026 - All Rights Reserved
         </footer>
     </div>
 
@@ -3185,7 +3148,7 @@
                     'Solve Medical Questions of Previous Years',
                     'Physics • Chemistry • Biology • English • General Knowledge',
                     'Previous Year MCQ Practice',
-                    'Practice Mode and Exam Mode',
+                    'Practice Mode & Exam Mode',
                     'Smart Progress Tracking'
                 ],
                 typeSpeed: 30,          // একটু ধীর = মসৃণ
@@ -3200,8 +3163,7 @@
                 fadeOut: false,
                 shuffle: false,
                 // মসৃণ করার জন্য
-                contentType: 'html',
-                autoInsertCss: false,   // নিজে CSS কন্ট্রোল করছি
+                contentType: 'html'
             });
         }
 
