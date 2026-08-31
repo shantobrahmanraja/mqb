@@ -896,14 +896,33 @@
 
         /* Typed.js – smooth look */
         .typed-wrap {
-            min-height: 1.8em;
+            /* আগের min-height এর বদলে ফিক্সড হাইট + ফ্লেক্স */
+            height: 2.8em;
+            /* ২ লাইনের জন্য যথেষ্ট (ফিক্সড) */
+            min-height: 2.8em;
+            max-height: 2.8em;
+            /* বাড়তে দেবে না */
+
+            width: 100%;
+            max-width: 100%;
+
             margin-top: 10px;
             font-size: 1.08rem;
             color: #cbd5e1;
             font-weight: 500;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+
             position: relative;
             z-index: 2;
             letter-spacing: 0.01em;
+
+            overflow: hidden;
+            /* বাইরে যাওয়া টেক্সট কেটে দেবে (চাইলে visible রাখতে পারেন) */
+
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
@@ -912,9 +931,13 @@
         #typedText {
             color: #e2e8f0 !important;
             transition: opacity 0.15s ease;
+            display: inline-block;
+            /* লেআউট স্থিতিশীল রাখে */
+            max-width: 100%;
+            line-height: 1.4;
         }
 
-        /* মসৃণ ব্লিঙ্কিং কার্সর */
+        /* কার্সর যাতে হাইট নষ্ট না করে */
         .typed-cursor {
             color: #60a5fa !important;
             font-weight: 300 !important;
@@ -922,6 +945,7 @@
             animation: typedBlink 0.85s step-end infinite !important;
             margin-left: 2px;
             vertical-align: baseline;
+            display: inline-block;
         }
 
         @keyframes typedBlink {
@@ -939,7 +963,19 @@
         @media (max-width: 640px) {
             .typed-wrap {
                 font-size: 0.95rem;
-                min-height: 1.6em;
+                height: 2.6em;
+                min-height: 2.6em;
+                max-height: 2.6em;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .typed-wrap {
+                height: 3.2em;
+                /* খুব ছোট স্ক্রিনে ২ লাইন লাগতে পারে */
+                min-height: 3.2em;
+                max-height: 3.2em;
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -3164,7 +3200,8 @@
                 fadeOut: false,
                 shuffle: false,
                 // মসৃণ করার জন্য
-                contentType: 'html'
+                contentType: 'html',
+                autoInsertCss: false,   // নিজে CSS কন্ট্রোল করছি
             });
         }
 
