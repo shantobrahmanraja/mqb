@@ -38,6 +38,91 @@
             --shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.5);
         }
 
+        /* Smooth theme transition for key surfaces */
+        header,
+        .input-section,
+        .question-card,
+        .score-item,
+        .empty-state,
+        .modal-box,
+        .option,
+        .tab-btn,
+        .review-btn,
+        .theme-btn,
+        button,
+        textarea,
+        .q-number {
+            transition:
+                background 0.4s ease,
+                background-color 0.4s ease,
+                border-color 0.35s ease,
+                box-shadow 0.35s ease,
+                color 0.35s ease,
+                transform 0.2s ease;
+        }
+
+        body.theme-switching {
+            opacity: 0.72;
+            transition: opacity 0.22s ease;
+        }
+
+        body {
+            transition: opacity 0.28s ease, background 0.45s ease, color 0.35s ease;
+        }
+
+        /* ===== Theme variants ===== */
+        body.theme-male {
+            --primary: #3b82f6;
+            --primary-2: #2563eb;
+            --primary-glow: rgba(59, 130, 246, 0.45);
+            --accent: #60a5fa;
+            --correct: #22c55e;
+            --correct-bg: rgba(6, 78, 59, 0.55);
+            --wrong: #ef4444;
+            --wrong-bg: rgba(127, 29, 29, 0.55);
+            --card: rgba(15, 23, 42, 0.65);
+            --card-hover: rgba(30, 41, 59, 0.8);
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --border: rgba(148, 163, 184, 0.18);
+            --glass-border: rgba(96, 165, 250, 0.18);
+        }
+
+        body.theme-female {
+            --primary: #ec4899;
+            --primary-2: #db2777;
+            --primary-glow: rgba(236, 72, 153, 0.45);
+            --accent: #f472b6;
+            --correct: #34d399;
+            --correct-bg: rgba(6, 78, 59, 0.5);
+            --wrong: #f87171;
+            --wrong-bg: rgba(127, 29, 29, 0.5);
+            --card: rgba(30, 10, 30, 0.55);
+            --card-hover: rgba(50, 20, 45, 0.7);
+            --text: #fdf2f8;
+            --muted: #f9a8d4;
+            --border: rgba(244, 114, 182, 0.2);
+            --glass-border: rgba(244, 114, 182, 0.22);
+        }
+
+        /* Male background */
+        body.theme-male {
+            background:
+                radial-gradient(ellipse 90% 60% at 10% -15%, rgba(37, 99, 235, 0.35), transparent 50%),
+                radial-gradient(ellipse 70% 50% at 95% 5%, rgba(30, 64, 175, 0.28), transparent 45%),
+                radial-gradient(ellipse 60% 40% at 50% 110%, rgba(14, 165, 233, 0.18), transparent 50%),
+                linear-gradient(165deg, #020617 0%, #0f172a 40%, #020617 100%);
+        }
+
+        /* Female (pinkish) background */
+        body.theme-female {
+            background:
+                radial-gradient(ellipse 90% 60% at 10% -15%, rgba(236, 72, 153, 0.32), transparent 50%),
+                radial-gradient(ellipse 70% 50% at 95% 5%, rgba(219, 39, 119, 0.25), transparent 45%),
+                radial-gradient(ellipse 60% 40% at 50% 110%, rgba(244, 114, 182, 0.18), transparent 50%),
+                linear-gradient(165deg, #1a0a14 0%, #2d1525 40%, #1a0a14 100%);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -58,6 +143,9 @@
             min-height: 100vh;
             padding: 18px;
             -webkit-font-smoothing: antialiased;
+            transition:
+                background 0.45s ease,
+                color 0.35s ease;
         }
 
         .container {
@@ -106,6 +194,20 @@
             margin-bottom: 8px;
             letter-spacing: -0.03em;
             position: relative;
+        }
+
+        body.theme-male header h1 {
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        body.theme-female header h1 {
+            background: linear-gradient(135deg, #f9a8d4 0%, #ec4899 50%, #f472b6 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
 
         header p {
@@ -177,10 +279,10 @@
             box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
         }
 
-        .btn-primary:active {
+        /* .btn-primary:active {
             transform: scale(0.97);
             box-shadow: 0 3px 12px rgba(59, 130, 246, 0.35);
-        }
+        } */
 
         .btn-secondary {
             background: rgba(30, 41, 59, 0.7);
@@ -193,6 +295,119 @@
         .btn-secondary:active {
             background: rgba(51, 65, 85, 0.95);
             transform: scale(0.97);
+        }
+
+        /* ===== Dynamic themed buttons ===== */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            color: white;
+            box-shadow: 0 6px 20px var(--primary-glow);
+            border: none;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.97);
+            box-shadow: 0 3px 12px var(--primary-glow);
+        }
+
+        /* Load Questions – soft teal / cyan tone */
+        .btn-load {
+            background: linear-gradient(135deg, #0d9488, #14b8a6);
+            color: white;
+            border: none;
+            box-shadow: 0 6px 18px rgba(13, 148, 136, 0.35);
+        }
+
+        body.theme-female .btn-load {
+            background: linear-gradient(135deg, #db2777, #f472b6);
+            box-shadow: 0 6px 18px rgba(219, 39, 119, 0.35);
+        }
+
+        body.theme-male .btn-load {
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
+        }
+
+        /* Make Exam – purple / violet */
+        .btn-exam {
+            background: linear-gradient(135deg, #7c3aed, #6366f1);
+            color: white;
+            border: none;
+            box-shadow: 0 6px 18px rgba(124, 58, 237, 0.4);
+        }
+
+        body.theme-female .btn-exam {
+            background: linear-gradient(135deg, #a21caf, #ec4899);
+            box-shadow: 0 6px 18px rgba(162, 28, 175, 0.4);
+        }
+
+        body.theme-male .btn-exam {
+            background: linear-gradient(135deg, #4f46e5, #3b82f6);
+            box-shadow: 0 6px 18px rgba(79, 70, 229, 0.4);
+        }
+
+        /* Remove Questions – muted slate */
+        .btn-clear {
+            background: linear-gradient(135deg, #475569, #64748b);
+            color: #f1f5f9;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow: 0 4px 14px rgba(71, 85, 105, 0.3);
+        }
+
+        body.theme-female .btn-clear {
+            background: linear-gradient(135deg, #9d174d, #be185d);
+            border-color: rgba(244, 114, 182, 0.3);
+            box-shadow: 0 4px 14px rgba(157, 23, 77, 0.3);
+        }
+
+        body.theme-male .btn-clear {
+            background: linear-gradient(135deg, #1e3a5f, #334155);
+            border-color: rgba(96, 165, 250, 0.25);
+            box-shadow: 0 4px 14px rgba(30, 58, 95, 0.35);
+        }
+
+        /* Remove Progress – danger red */
+        .btn-danger {
+            background: linear-gradient(135deg, #b91c1c, #dc2626);
+            color: #fecaca;
+            border: 1px solid rgba(248, 113, 113, 0.4);
+            box-shadow: 0 4px 14px rgba(185, 28, 28, 0.35);
+        }
+
+        body.theme-female .btn-danger {
+            background: linear-gradient(135deg, #9f1239, #e11d48);
+            border-color: rgba(251, 113, 133, 0.45);
+            box-shadow: 0 4px 14px rgba(159, 18, 57, 0.35);
+        }
+
+        body.theme-male .btn-danger {
+            background: linear-gradient(135deg, #991b1b, #ef4444);
+            border-color: rgba(248, 113, 113, 0.4);
+            box-shadow: 0 4px 14px rgba(153, 27, 27, 0.35);
+        }
+
+        /* Active / press feedback for all new buttons */
+        .btn-load:active,
+        .btn-exam:active,
+        .btn-clear:active,
+        .btn-danger:active {
+            transform: scale(0.97);
+        }
+
+        /* Desktop hover */
+        @media (hover: hover) and (pointer: fine) {
+            .btn-primary:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 10px 28px var(--primary-glow);
+            }
+
+            .btn-load:hover,
+            .btn-exam:hover,
+            .btn-clear:hover,
+            .btn-danger:hover {
+                transform: translateY(-2px);
+                filter: brightness(1.08);
+            }
         }
 
         .score-bar {
@@ -446,10 +661,10 @@
         }
 
         .tab-btn.active {
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
             border-color: transparent;
             color: white;
-            box-shadow: 0 6px 18px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 6px 18px var(--primary-glow);
         }
 
         .tab-btn:active:not(.active) {
@@ -854,18 +1069,18 @@
         }
 
         /* Exam button special color */
-        .btn-row button[style*="7c3aed"] {
+        /* .btn-row button[style*="7c3aed"] {
             background: linear-gradient(135deg, #7c3aed, #6366f1) !important;
             color: white !important;
             border: none !important;
-        }
+        } */
 
         /* Clear progress (danger) */
-        .btn-row button[style*="127,29,29"] {
+        /* .btn-row button[style*="127,29,29"] {
             background: rgba(127, 29, 29, 0.75) !important;
             border-color: rgba(248, 113, 113, 0.45) !important;
             color: #fecaca !important;
-        }
+        } */
 
         /* Mobile: 2 columns when possible */
         @media (max-width: 640px) {
@@ -977,6 +1192,111 @@
                 max-height: 3.2em;
                 font-size: 0.9rem;
             }
+        }
+
+        .theme-btn {
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: 1px solid var(--glass-border);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .theme-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            border-color: transparent;
+            color: white;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .theme-btn:active {
+            transform: scale(0.96);
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .theme-btn:hover:not(.active) {
+                border-color: var(--primary);
+                background: rgba(30, 41, 59, 0.8);
+            }
+        }
+
+        /* ===== Collapsible input section ===== */
+        .input-section {
+            transition: padding 0.35s ease, margin 0.35s ease;
+        }
+
+        .input-section .input-lock-wrap {
+            overflow: hidden;
+            transition:
+                max-height 0.4s ease,
+                opacity 0.3s ease,
+                margin 0.35s ease;
+            max-height: 400px;
+        }
+
+        .input-section.collapsed .input-lock-wrap {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+            pointer-events: none;
+        }
+
+        .input-section.collapsed h2 {
+            margin-bottom: 10px;
+        }
+
+        /* কলাপ্স হলে শুধু শিরোনাম দেখাবে */
+        .input-section.collapsed h2 {
+            margin-bottom: 0;
+            font-size: 1.05rem;
+            opacity: 0.9;
+        }
+
+        /* বাটন রো সবসময় দেখা যাবে */
+        .input-section .btn-row {
+            transition: opacity 0.3s ease;
+        }
+
+        .input-section.collapsed h2::after {
+            content: "  🔒 Input has been locked";
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--muted);
+            margin-left: 8px;
+        }
+
+        body.theme-female .input-section.collapsed h2::after {
+            color: #f9a8d4;
+        }
+
+        /* কলাপ্স হলে textarea ও বাটন লুকাও */
+        .input-section.collapsed textarea,
+        /* .input-section.collapsed .btn-row, */
+        .input-section.collapsed .parse-status {
+            opacity: 0;
+            visibility: hidden;
+            height: 0;
+            min-height: 0;
+            margin: 0;
+            padding: 0;
+            border: none;
+            overflow: hidden;
+            pointer-events: none;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        /* খোলা অবস্থায় নরমাল ট্রানজিশন */
+        .input-section:not(.collapsed) textarea,
+        .input-section:not(.collapsed) .btn-row,
+        .input-section:not(.collapsed) .parse-status {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease 0.1s;
         }
     </style>
 </head>
@@ -1127,23 +1447,29 @@
             <div class="typed-wrap">
                 <span id="typedText"></span>
             </div>
+            <div class="theme-switcher"
+                style="margin-top:16px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                <button class="theme-btn active" data-theme="normal" onclick="setTheme('normal')">🌓 Normal</button>
+                <button class="theme-btn" data-theme="male" onclick="setTheme('male')">👨 Male</button>
+                <button class="theme-btn" data-theme="female" onclick="setTheme('female')">👩 Female</button>
+            </div>
         </header>
 
         <div class="input-section">
             <h2>🛂 Paste The Questions In Markdown Format</h2>
-            <textarea id="mdInput" placeholder="Paste your questions here..."></textarea>
+
+            <div class="input-lock-wrap">
+                <textarea id="mdInput" placeholder="Paste your questions here..."></textarea>
+                <div class="parse-status" id="parseStatus"></div>
+            </div>
+
             <div class="btn-row">
                 <button class="btn-primary" onclick="parseAndGenerate()">🚀 Make Practice</button>
-                <!-- <button class="btn-secondary" onclick="loadSample()">🔃 Load Demo Questions</button> -->
-                <button class="btn-secondary" onclick="openDemoModal()">🔃 Load Questions</button>
-                <button class="btn-secondary" onclick="openExamModal()" style="background:#7c3aed;">📝 Make
-                    Exam</button>
-                <button class="btn-secondary" onclick="clearAll()">❌ Remove Questions</button>
-                <button class="btn-secondary" onclick="clearCurrentProgress()"
-                    style="background:rgba(127,29,29,0.7); border-color:rgba(248,113,113,0.4);">🗑 Remove
-                    Progress</button>
+                <button class="btn-load" onclick="openDemoModal()">🔃 Load Questions</button>
+                <button class="btn-exam" onclick="openExamModal()">📝 Make Exam</button>
+                <button class="btn-clear" onclick="clearAll()">❌ Remove Questions</button>
+                <button class="btn-danger" onclick="clearCurrentProgress()">🗑 Remove Progress</button>
             </div>
-            <div class="parse-status" id="parseStatus"></div>
         </div>
 
         <div id="sessionInfoBar"
@@ -1205,11 +1531,6 @@
     </div>
 
     <script>
-        // ========== DEMO MODAL + JSONBIN ==========
-
-        const JSONBIN_BIN_ID = '6a89af14f5f4af5e29357c6d';   // ← এখানে আপনার Bin ID বসাবেন
-        const JSONBIN_API_KEY = '$2a$10$02CD02ltZ7nPORFB3j6kNeoBV7.YRfp7FYO0DvRTorf8h4TFlcpl6'; // ← যদি প্রাইভেট হয় (পাবলিক হলে লাগবে না)
-
         async function openDemoModal() {
             const statusEl = document.getElementById('modalStatus');
             const subjectSelect = document.getElementById('subjectSelect');
@@ -1275,56 +1596,6 @@
         function closeDemoModal() {
             document.getElementById('demoModal').style.display = 'none';
         }
-
-        // async function loadDemoQuestions() {
-        //     const subject = document.getElementById('subjectSelect').value;
-        //     const chapter = document.getElementById('chapterSelect').value;
-        //     const statusEl = document.getElementById('modalStatus');
-
-        //     if (!subject || !chapter) {
-        //         statusEl.textContent = 'সাবজেক্ট ও চ্যাপ্টার দুটোই সিলেক্ট করুন!';
-        //         statusEl.style.color = '#f87171';
-        //         return;
-        //     }
-
-        //     statusEl.textContent = 'লোড হচ্ছে...';
-        //     statusEl.style.color = '#94a3b8';
-
-        //     try {
-        //         // JSONBin থেকে ডেটা আনা
-        //         const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-        //             headers: {
-        //                 'X-Master-Key': JSONBIN_API_KEY   // পাবলিক বিন হলে এই হেডার বাদ দিতে পারেন
-        //             }
-        //         });
-
-        //         if (!res.ok) throw new Error('JSONBin থেকে ডেটা আনা যায়নি');
-
-        //         const json = await res.json();
-        //         const records = json.record;   // সাধারণত array থাকে
-
-        //         // subject + chapter মিলিয়ে খুঁজে বের করা
-        //         const matched = Array.isArray(records)
-        //             ? records.find(r => r.subject === subject && String(r.chapter) === String(chapter))
-        //             : null;
-
-        //         if (!matched || !matched.questions) {
-        //             statusEl.textContent = 'এই সাবজেক্ট ও চ্যাপ্টারের জন্য কোনো প্রশ্ন পাওয়া যায়নি!';
-        //             statusEl.style.color = '#f87171';
-        //             return;
-        //         }
-
-        //         // প্রশ্ন textarea-তে বসিয়ে parse করা
-        //         document.getElementById('mdInput').value = matched.questions;
-        //         closeDemoModal();
-        //         parseAndGenerate();   // আগের ফাংশন দিয়েই পার্স হবে
-
-        //     } catch (err) {
-        //         console.error(err);
-        //         statusEl.textContent = 'সমস্যা হয়েছে: ' + err.message;
-        //         statusEl.style.color = '#f87171';
-        //     }
-        // }
 
         const SUBJECT_LABELS = {
             physics1: 'Physics 1st',
@@ -2221,6 +2492,8 @@
             document.getElementById('tabBar').style.display = 'flex';
             document.getElementById('wrongTabCount').textContent = wrongAnswers.size;
             document.getElementById('reviewTabCount').textContent = reviewList.size;
+
+            collapseInputSection();
         }
 
         function typesetMath(container) {
@@ -2576,17 +2849,6 @@
                 return; // ফিডব্যাক দেখাবে না
             }
 
-
-            // প্রশ্ন যদি আগে থেকেই সঠিক হয়ে থাকে,
-            // তাহলে আর answer করা যাবে না
-            // if (
-            //     answered.has(q.qKey) &&
-            //     !wrongAnswers.has(q.qKey)
-            // ) {
-            //     return;
-            // }
-
-
             const options = document.querySelectorAll(
                 `.option[data-q="${qIndex}"]`
             );
@@ -2794,81 +3056,6 @@
 
         }
 
-        function loadSample() {
-            document.getElementById('mdInput').value = `১৪০। ঘনত্ব প্যারামিটার $\\Omega$-এর মান 1-এর অধিক হলে মহাবিশ্বের আকৃতি হবে– [ইসহাক স্যার]
-(a) উন্মুক্ত
-(b) সমতল
-(c) আবদ্ধ
-(d) কোনোটিই নয়
-**উত্তর:** (c) আবদ্ধ
-
-১৪১। ঘনত্ব প্যারামিটার $\\Omega$-এর মান R = 1 হলে মহাবিশ্বের আকৃতি হবে– [ইসহাক স্যার]
-(a) উন্মুক্ত
-(b) সমতল
-(c) আবদ্ধ
-(d) গোলাকার
-**উত্তর:** (b) সমতল
-
-১৪২। ঘনত্ব প্যারামিটার, $\\Omega < 1$ হলে, মহাবিশ্বের আকৃতি হবে– [ইসহাক স্যার]
-(a) উন্মুক্ত
-(b) সমতল
-(c) আবদ্ধ
-(d) কোনোটিই নয়
-**উত্তর:** (a) উন্মুক্ত
-
-১৪৩। একটি শ্বেত বামনের ভর সূর্যের ভরের কতগুণের বেশি হতে পারে না? [ইসহাক স্যার]
-(a) $1.1$
-(b) $1.2$
-(c) $1.3$
-(d) $1.4$
-**উত্তর:** (d) $1.4$
-
-১৪৪। কৃষ্ণ বিবরের নাম কৃষ্ণ বিবর হওয়ার কারণ কোনটি? [তপন স্যার]
-(a) এটি মহাশূন্যের অংশ যাতে কোনো পদার্থ নেই
-(b) এটা সম্পূর্ণই কার্বন দিয়ে তৈরি
-(c) এর মহাকর্ষ এত বেশি যে এটা থেকে মহাশূন্যে আলো বিকিরিত হতে পারে না
-(d) এটি এমন একটি নক্ষত্র যা কোনো দৃশ্যমান আলো বিকিরণ করে না
-**উত্তর:** (c) এর মহাকর্ষ এত বেশি যে এটা থেকে মহাশূন্যে আলো বিকিরিত হতে পারে না
-
-১৪৫। তারকার ভর কত এর বেশি হলে তারকাটি শ্বেতবামন এ পরিণত হবে না? [তপন স্যার]
-(a) $1.3\\text{ M}_\\odot$
-(b) $1.5\\text{ M}_\\odot$
-(c) $1.2\\text{ M}_\\odot$
-(d) $1.4\\text{ M}_\\odot$
-**উত্তর:** (d) $1.4\\text{ M}_\\odot$
-
-২৩। $200\\ \\Omega$ রোধের একটি বাল্বের ভেতর দিয়ে $0.5\\text{ A}$ তড়িৎ প্রবাহিত হলে এর দুই প্রান্তের বিভব পার্থক্য কত? [ইসহাক স্যার]
-(a) $200\\text{ V}$
-(b) $100\\text{ V}$
-(c) $50\\text{ V}$
-(d) $20\\text{ V}$
-**সমাধান:** $\\text{V} = \\text{IR} = 0.5 \\times 200 = 100\\text{V}$
-**উত্তর:** (b) $100\\text{ V}$
-
-২৪। একটি কোষের তড়িৎচালক শক্তি $1.8\\text{V}$। এর মেরুদ্বয়ের সাথে $12\\ \\Omega$ রোধ যুক্ত করলে প্রবাহ $0.12\\text{A}$ হয়। কোষের অভ্যন্তরীণ রোধ কত? [ইসহাক স্যার]
-(a) $3\\ \\Omega$
-(b) $4\\ \\Omega$
-(c) $6\\ \\Omega$
-(d) $2.4\\ \\Omega$
-**সমাধান:** $i = \\frac{\\text{E}}{r+\\text{R}} \\Rightarrow 0.12 = \\frac{1.8}{r+12} \\Rightarrow r+12 = 15 \\therefore r = 3\\ \\Omega$
-**উত্তর:** (a) $3\\ \\Omega$
-
-২২৭। পাত দূরত্ব $d$ এবং ধারকত্ব $\\text{C}$, এমন একটি সমান্তরাল পাত ধারকের পাত দুটির মধ্যস্থানে $d/2$ পুরুত্ববিশিষ্ট একটি ধাতব পাত স্থাপন করা হলো। নতুন ধারকত্ব কত হবে? [তপন স্যার]
-(a) $\\text{C}/d$
-(b) $\\text{C}/2$
-(c) $4\\text{C}d$
-(d) $2\\text{C}$
-**ব্যাখ্যা:** পাত দূরত্ব $d$ এবং ধারকত্ব $\\text{C}$ বিশিষ্ট একটি সমান্তরাল পাত ধারকের মধ্যস্থানে $d/2$ পুরুত্ববিশিষ্ট একটি ধাতব পাত স্থাপন করা হলে, ১ম ও ২য় পাতের মধ্যবর্তী দূরত্ব $= d/2$। ২য় ও ৩য় পাতের মধ্যবর্তী দূরত্ব $= \\text{শূন্য}$। তাহলে নতুন ধারকত্ব: $\\text{C}_1 = \\frac{\\varepsilon_0 A}{d/2} = 2\\text{C}$; $\\text{C}_2 = \\infty$। সুতরাং, $\\frac{1}{\\text{C}'} = \\frac{1}{2\\text{C}} + \\frac{1}{\\infty} \\Rightarrow \\text{C}' = 2\\text{C}$
-**উত্তর:** (d) $2\\text{C}$
-
-০১। কুলম্বের সূত্র কোন ক্ষেত্রে প্রযোজ্য?
-(a) বিন্দু চার্জ
-(b) ক্ষুদ্র চার্জ
-(c) যে কোন চার্জ
-(d) বৃহৎ চার্জ
-**উত্তর:** (a) বিন্দু চার্জ`;
-        }
-
         function clearAll() {
             // শুধু UI/সেশন ক্লিয়ার — কোনো সেটের সেভ করা প্রোগ্রেস মুছে না
             document.getElementById('mdInput').value = '';
@@ -2930,6 +3117,8 @@
             // mcq_prog_* কীগুলো ইচ্ছাকৃতভাবে রাখা হয়েছে — অন্যান্য চ্যাপ্টারের প্রোগ্রেস অক্ষুণ্ণ
 
             document.getElementById('tabBar').style.display = 'none';
+
+            expandInputSection();
         }
 
         /** বর্তমান লোড করা সেটের প্রোগ্রেস মুছে ফেলে */
@@ -3158,6 +3347,12 @@
                     updateSessionInfo();
 
                     renderQuiz();
+
+                    // থিম রিস্টোর
+                    const savedTheme = localStorage.getItem('mcq_theme') || 'normal';
+                    setTheme(savedTheme);
+
+                    collapseInputSection();
                 }
             }
         });
@@ -3206,8 +3401,66 @@
         }
 
         // শুধু একবার চালাও (double start বন্ধ)
+        function collapseInputSection() {
+            const section = document.querySelector('.input-section');
+            if (!section) return;
+            section.classList.add('collapsed');
+
+            const h2 = section.querySelector('h2');
+            if (h2) {
+                h2.dataset.original = h2.dataset.original || h2.textContent;
+                h2.textContent = '✔️ Questions Loaded!';
+
+            }
+        }
+
+        function expandInputSection() {
+            const section = document.querySelector('.input-section');
+            if (!section) return;
+            section.classList.remove('collapsed');
+
+            const h2 = section.querySelector('h2');
+            if (h2 && h2.dataset.original) {
+                h2.textContent = h2.dataset.original;
+            }
+        }
+
+        // Typed.js শুরু করো
         window.addEventListener('load', function () {
-            setTimeout(startTypedEffect, 100);
+            setTimeout(startTypedEffect, 120);
+        });
+
+        // ========== Theme Switcher ==========
+        function setTheme(theme) {
+            // ফেড শুরু
+            document.body.classList.add('theme-switching');
+
+            setTimeout(() => {
+                document.body.classList.remove('theme-male', 'theme-female');
+
+                if (theme === 'male') {
+                    document.body.classList.add('theme-male');
+                } else if (theme === 'female') {
+                    document.body.classList.add('theme-female');
+                }
+
+                document.querySelectorAll('.theme-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.theme === theme);
+                });
+
+                localStorage.setItem('mcq_theme', theme);
+
+                // ফেড শেষ
+                requestAnimationFrame(() => {
+                    document.body.classList.remove('theme-switching');
+                });
+            }, 180); // ফেড-আউট সময় (ms)
+        }
+
+        // পেজ লোড হলে সেভ করা থিম অ্যাপ্লাই করো
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('mcq_theme') || 'normal';
+            setTheme(savedTheme);
         });
     </script>
 </body>
