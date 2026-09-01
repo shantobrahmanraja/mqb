@@ -1275,9 +1275,7 @@
         }
 
         /* কলাপ্স হলে textarea ও বাটন লুকাও */
-        .input-section.collapsed textarea,
-        /* .input-section.collapsed .btn-row, */
-        .input-section.collapsed .parse-status {
+        .input-section.collapsed textarea {
             opacity: 0;
             visibility: hidden;
             height: 0;
@@ -1460,7 +1458,6 @@
 
             <div class="input-lock-wrap">
                 <textarea id="mdInput" placeholder="Paste your questions here..."></textarea>
-                <div class="parse-status" id="parseStatus"></div>
             </div>
 
             <div class="btn-row">
@@ -1470,6 +1467,8 @@
                 <button class="btn-clear" onclick="clearAll()">❌ Remove Questions</button>
                 <button class="btn-danger" onclick="clearCurrentProgress()">🗑 Remove Progress</button>
             </div>
+
+            <div class="parse-status" id="parseStatus"></div>
         </div>
 
         <div id="sessionInfoBar"
